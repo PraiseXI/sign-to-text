@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Camera, Type, Volume2 } from 'lucide-react'
+import { Camera, Type, Volume2, Mic } from 'lucide-react'
 
 // Mock function to simulate sign language recognition
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -18,6 +19,7 @@ export function SignLanguageTranslatorComponent() {
   const [translation, setTranslation] = useState<string>('')
   const [isCapturing, setIsCapturing] = useState<boolean>(false)
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false)
+  const [isListening, setIsListening] = useState<boolean>(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -82,6 +84,36 @@ export function SignLanguageTranslatorComponent() {
     }
   }
 
+  const startSpeechToText = () => {
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new (window as any).webkitSpeechRecognition()
+      recognition.continuous = false
+      recognition.interimResults = false
+
+      recognition.onstart = () => {
+        setIsListening(true)
+      }
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setTranslation(prev => prev + (prev ? ' ' : '') + transcript)
+      }
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error)
+        setIsListening(false)
+      }
+
+      recognition.onend = () => {
+        setIsListening(false)
+      }
+
+      recognition.start()
+    } else {
+      console.error("Speech recognition not supported")
+    }
+  }
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -132,6 +164,14 @@ export function SignLanguageTranslatorComponent() {
                 aria-label="Speak translation"
               >
                 <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-primary' : ''}`} />
+              </Button>
+              <Button
+                onClick={startSpeechToText}
+                disabled={isListening}
+                size="icon"
+                aria-label="Start speech-to-text"
+              >
+                <Mic className={`w-4 h-4 ${isListening ? 'text-primary' : ''}`} />
               </Button>
             </div>
           </div>
